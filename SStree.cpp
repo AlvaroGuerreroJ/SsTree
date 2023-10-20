@@ -25,7 +25,7 @@ bool SsNode::test(bool isRoot) const {
                 std::cout << "Child centroid outside parent radius detected." << std::endl;
                 return false;
             }
-            if (!child->test()) {
+            if (!child->test(false)) {
                 return false;
             }
         }
@@ -44,7 +44,7 @@ bool SsNode::test(bool isRoot) const {
     return true;
 }
 void SsTree::test() const {
-    bool result = root->test();
+    bool result = root->test(true);
 
     if (root->parent) {
         std::cout << "Root node parent pointer is not null!" << std::endl;
