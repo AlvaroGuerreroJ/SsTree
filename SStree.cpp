@@ -4,7 +4,7 @@
 
 
 
-bool SsNode::test() const {
+bool SsNode::test(bool isRoot) const {
     size_t count = 0;
     if (this->isLeaf()) {
         const SsLeaf* leaf = dynamic_cast<const SsLeaf*>(this);
@@ -25,17 +25,18 @@ bool SsNode::test() const {
                 std::cout << "Child centroid outside parent radius detected." << std::endl;
                 return false;
             }
+            if (!child->test()) {
+                return false;
+            }
         }
     }
 
-    // Comprobar la validez de la cantidad de hijos/puntos
-    if (parent && (count < Settings::m || count > Settings::M)) {
+    if (!isRoot && (count < Settings::m || count > Settings::M)) {
         std::cout << "Invalid number of children/points detected." << std::endl;
         return false;
     }
 
-    // Comprobar punteros con padres
-    if (!parent) {
+    if (!isRoot && !parent) {
         std::cout << "Node without parent detected." << std::endl;
         return false;
     }
@@ -45,7 +46,7 @@ bool SsNode::test() const {
 void SsTree::test() const {
     bool result = root->test();
 
-    if (!root->parent) {
+    if (root->parent) {
         std::cout << "Root node parent pointer is not null!" << std::endl;
         result = false;
     }

@@ -33,7 +33,7 @@ public:
 
     virtual SsNode* insert(const Point& point) = 0;
 
-    bool test() const;
+    bool test(bool isRoot = false) const;
     void print(size_t indent = 0) const;
 };
 
