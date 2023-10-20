@@ -4,7 +4,8 @@
 #include "params.h"
 #include <vector>
 #include <cmath>
-
+#include <iostream>
+#include <sstream>
 
 class Point {
 private:
@@ -14,6 +15,7 @@ public:
     Point() {}
     Point(size_t size) : coordinates(size) {}
     Point(std::initializer_list<NType> init) : coordinates(init) {}
+    Point(std::vector<NType> coordinates) : coordinates(coordinates) {}
 
     // Acceso a las coordenadas
     const NType& operator[](size_t index) const {

@@ -4,6 +4,10 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <queue>
+#include <limits>
+#include <fstream>
+
 #include "params.h"
 #include "Point.h"
 
@@ -35,6 +39,12 @@ public:
 
     bool test(bool isRoot = false) const;
     void print(size_t indent = 0) const;
+
+    virtual void FNDFTrav(const Point& q, size_t k, std::priority_queue<Pair, std::vector<Pair>, Comparator>& L, NType& Dk) const = 0;
+
+
+    virtual void saveToStream(std::ostream &out) const = 0;
+    virtual void loadFromStream(std::istream &in) = 0;
 };
 
 class SsInnerNode : public SsNode {
@@ -51,11 +61,16 @@ public:
     void updateBoundingEnvelope() override;
 
     SsNode* insert(const Point& point) override;
+
+    void FNDFTrav(const Point& q, size_t k, std::priority_queue<Pair, std::vector<Pair>, Comparator>& L, NType& Dk) const override;
+
+    virtual void saveToStream(std::ostream &out) const override;
+    virtual void loadFromStream(std::istream &in) override;
 };
 
 class SsLeaf : public SsNode {
 private:
-    std::string path;
+    std::vector<std::string> paths;
 
     std::vector<Point> getEntriesCentroids() const override;
     void sortEntriesByCoordinate(size_t coordinateIndex) override;
@@ -68,6 +83,24 @@ public:
     void updateBoundingEnvelope() override;
 
     SsNode* insert(const Point& point) override;
+
+    void FNDFTrav(const Point& q, size_t k, std::priority_queue<Pair, std::vector<Pair>, Comparator>& L, NType& Dk) const override;
+
+    virtual void saveToStream(std::ostream &out) const override;
+    virtual void loadFromStream(std::istream &in) override;
+};
+
+
+struct Pair {
+    Point point;
+    NType distance;
+
+    Pair(const Point& p, NType d) : point(p), distance(d) {}
+};
+struct Comparator {
+    bool operator()(const Pair& a, const Pair& b) const {
+        return a.distance < b.distance; // max-heap basado en distancia
+    }
 };
 
 class SsTree {
@@ -89,6 +122,9 @@ public:
 
     void print() const;
     void test() const;
+
+    void saveToFile(const std::string &filename) const;
+    void loadFromFile(const std::string &filename);
 };
 
 #endif // !SSTREE_H

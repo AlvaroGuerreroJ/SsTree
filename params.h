@@ -142,6 +142,14 @@ public:
         os << other.value;
         return os;
     }
+    friend std::stringstream& operator<<(std::stringstream& os, const Safe& other) {
+        os << other.value;
+        return os;
+    }
+    friend std::stringstream& operator>>(std::stringstream& is, Safe& other) {
+        is >> other.value;
+        return is;
+    }
 
     // Valores especiales
     static Safe max_value() {

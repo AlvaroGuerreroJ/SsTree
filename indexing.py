@@ -32,7 +32,7 @@ net.eval()
 
 def get_image_loader(root_dir, transform, batch_size):
     dataset = ImageFolder(root=root_dir, transform=transform)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4) 
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4)  # pin_memory=True if using CUDA
     return loader
 
 root_dir = "img"

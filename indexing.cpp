@@ -55,5 +55,8 @@ int main() {
         tree.insert(item.embedding, item.path);
     }
 
+    std::string filename = "embbeding.dat";
+    tree.saveToFile(filename);
+
     return 0;
 }

@@ -22,5 +22,12 @@ int main() {
         tree.insert(point);
     }
 
+    std::string filename = "sstree.dat";
+    tree.saveToFile(filename);
+
+    tree = SsTree();    // Clean the tree
+    tree.loadFromFile(filename);
+
+
     return 0;
 }
