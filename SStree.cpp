@@ -2,14 +2,13 @@
 
 
 
-
-
 bool SsNode::test(bool isRoot) const {
     size_t count = 0;
     if (this->isLeaf()) {
         const SsLeaf* leaf = dynamic_cast<const SsLeaf*>(this);
         count = leaf->points.size();
 
+        // Verificar si los puntos están dentro del radio del nodo
         for (const Point& point : leaf->points) {
             if (distance(this->centroid, point) > this->radius) {
                 std::cout << "Point outside node radius detected." << std::endl;
@@ -20,22 +19,26 @@ bool SsNode::test(bool isRoot) const {
         const SsInnerNode* inner = dynamic_cast<const SsInnerNode*>(this);
         count = inner->children.size();
 
+        // Verificar si los centroides de los hijos están dentro del radio del nodo padre
         for (const SsNode* child : inner->children) {
             if (distance(this->centroid, child->centroid) > this->radius) {
                 std::cout << "Child centroid outside parent radius detected." << std::endl;
                 return false;
             }
+            // Verificar recursivamente cada hijo
             if (!child->test(false)) {
                 return false;
             }
         }
     }
 
+    // Comprobar la validez de la cantidad de hijos/puntos
     if (!isRoot && (count < Settings::m || count > Settings::M)) {
         std::cout << "Invalid number of children/points detected." << std::endl;
         return false;
     }
 
+    // Comprobar punteros de parentezco, salvo para el nodo raíz
     if (!isRoot && !parent) {
         std::cout << "Node without parent detected." << std::endl;
         return false;
