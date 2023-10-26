@@ -38,11 +38,17 @@ private:
     size_t minVarianceSplit(size_t coordinateIndex);
 
 public:
+    SsNode(size_t dimensions, SsNode* parent)
+        : m_centroid(dimensions),
+          m_radius(0),
+          m_parent(parent)
+    {
+    }
+
     virtual ~SsNode() = default;
 
     virtual bool isLeaf() const = 0;
     virtual std::vector<Point> getEntriesCentroids() const = 0;
-    virtual void sortEntriesByCoordinate(size_t coordinateIndex) = 0;
     virtual std::pair<SsNode*, SsNode*> split() = 0;
 
     virtual bool intersectsPoint(Point const& point) const
@@ -220,10 +226,24 @@ public:
     std::vector<node_t*> m_children;
 
 private:
-    std::vector<Point> getEntriesCentroids() const override;
-    void sortEntriesByCoordinate(size_t coordinateIndex) override;
+    std::vector<Point> getEntriesCentroids() const override
+    {
+        std::vector<Point> ret;
+
+        for (node_t* n : m_children)
+        {
+            ret.push_back(n->m_centroid);
+        }
+
+        return ret;
+    }
 
 public:
+    SsInnerNode(size_t dimensions, node_t* parent)
+        : node_t{dimensions, parent}
+    {
+    }
+
     std::pair<node_t*, node_t*> split() override
     {
         size_t coord_index = this->directionOfMaxVariance();
@@ -247,19 +267,23 @@ public:
 
         assert(Settings::m <= index && Settings::m <= m_children.size() - index);
 
-        SsInnerNode* nn1 = new SsInnerNode();
-        SsInnerNode* nn2 = new SsInnerNode();
+        SsInnerNode* nn1 = new SsInnerNode(node_t::m_centroid.dim(), node_t::m_parent);
+        SsInnerNode* nn2 = new SsInnerNode(node_t::m_centroid.dim(), node_t::m_parent);
 
         i = 0;
         for (; i < index; i++)
         {
             size_t ri = values_index[i].second;
-            nn1->m_children.push_back(m_children[ri]);
+            auto to_add = m_children[ri];
+            to_add->m_parent = nn1;
+            nn1->m_children.push_back(to_add);
         }
         for (; i < m_children.size(); i++)
         {
             size_t ri = values_index[i].second;
-            nn2->m_children.push_back(m_children[ri]);
+            auto to_add = m_children[ri];
+            to_add->m_parent = nn2;
+            nn2->m_children.push_back(to_add);
         }
 
         nn1->updateBoundingEnvelope();
@@ -286,6 +310,7 @@ public:
                 ret = it;
                 min_distance = it_distance;
             }
+            ++it;
         }
 
         return ret;
@@ -376,10 +401,17 @@ public:
     std::vector<Data> m_points_data;
 
 private:
-    std::vector<Point> getEntriesCentroids() const override;
-    void sortEntriesByCoordinate(size_t coordinateIndex) override;
+    std::vector<Point> getEntriesCentroids() const override
+    {
+        return m_points;
+    }
 
 public:
+    SsLeaf(size_t dimensions, node_t* parent)
+        : node_t{dimensions, parent}
+    {
+    }
+
     std::pair<node_t*, node_t*> split() override
     {
         size_t coord_index = this->directionOfMaxVariance();
@@ -403,8 +435,8 @@ public:
 
         assert(Settings::m <= index && Settings::m <= m_points.size() - index);
 
-        SsLeaf* nn1 = new SsLeaf();
-        SsLeaf* nn2 = new SsLeaf();
+        SsLeaf* nn1 = new SsLeaf(node_t::m_centroid.dim(), node_t::m_parent);
+        SsLeaf* nn2 = new SsLeaf(node_t::m_centroid.dim(), node_t::m_parent);
 
         i = 0;
         for (; i < index; i++)
@@ -416,6 +448,7 @@ public:
         for (; i < m_points.size(); i++)
         {
             size_t ri = values_index[i].second;
+            nn2->m_points.push_back(m_points[ri]);
             nn2->m_points_data.emplace_back(std::move(m_points_data[ri]));
         }
 
@@ -502,12 +535,15 @@ public:
     using node_t = SsNode<Data>;
 
     node_t* m_root;
+    size_t m_dimensions;
+
     node_t* search(node_t* node, Point const& target);
     node_t* searchParentLeaf(node_t* node, Point const& target);
 
 public:
-    SsTree()
-        : m_root(new SsLeaf<Data>())
+    SsTree(size_t dimensions)
+        : m_root(new SsLeaf<Data>(dimensions, nullptr)),
+          m_dimensions(dimensions)
     {
     }
 
@@ -523,7 +559,11 @@ public:
         if (nchild1 != nullptr)
         {
             delete m_root;
-            SsInnerNode<Data>* new_root = new SsInnerNode<Data>();
+            SsInnerNode<Data>* new_root = new SsInnerNode<Data>(m_dimensions, nullptr);
+
+            nchild1->m_parent = new_root;
+            nchild2->m_parent = new_root;
+
             m_root = new_root;
             new_root->m_children.push_back(nchild1);
             new_root->m_children.push_back(nchild2);
