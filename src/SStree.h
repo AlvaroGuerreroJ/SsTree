@@ -10,6 +10,7 @@
 
 #include "params.h"
 #include "Point.h"
+#include "util.hpp"
 
 class SsNode {
 private:
@@ -88,19 +89,6 @@ public:
 
     virtual void saveToStream(std::ostream &out) const override;
     virtual void loadFromStream(std::istream &in) override;
-};
-
-
-struct Pair {
-    Point point;
-    NType distance;
-
-    Pair(const Point& p, NType d) : point(p), distance(d) {}
-};
-struct Comparator {
-    bool operator()(const Pair& a, const Pair& b) const {
-        return a.distance < b.distance; // max-heap basado en distancia
-    }
 };
 
 class SsTree {
