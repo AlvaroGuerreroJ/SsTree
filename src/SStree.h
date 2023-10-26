@@ -13,6 +13,11 @@
 #include "util.hpp"
 
 class SsNode {
+public:
+    Point m_centroid;
+    NType m_radius;
+    SsNode* m_parent = nullptr;
+
 private:
     NType varianceAlongDirection(const std::vector<Point>& centroids, size_t direction) const;
     size_t minVarianceSplit(size_t coordinateIndex);
@@ -20,16 +25,12 @@ private:
 public:
     virtual ~SsNode() = default;
 
-    Point centroid; 
-    NType radius;
-    SsNode* parent = nullptr;
-
     virtual bool isLeaf() const = 0;
     virtual std::vector<Point> getEntriesCentroids() const = 0;
     virtual void sortEntriesByCoordinate(size_t coordinateIndex) = 0;
     virtual std::pair<SsNode*, SsNode*> split() = 0;
     virtual bool intersectsPoint(const Point& point) const {
-        return distance(this->centroid, point) <= this->radius;
+        return distance(this->m_centroid, point) <= this->m_radius;
     }
 
     virtual void updateBoundingEnvelope() = 0;
