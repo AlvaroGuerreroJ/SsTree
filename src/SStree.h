@@ -207,14 +207,19 @@ public:
         std::cout << std::endl;
     }
 
-    virtual void FNDFTrav(
-        Point const& q,
+    virtual void kNNQuery(
+        Point const& center,
         size_t k,
-        std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
-        NType& Dk) const = 0;
+        std::priority_queue<std::pair<double, Data>>& results) const = 0;
 
-    virtual void saveToStream(std::ostream& out) const = 0;
-    virtual void loadFromStream(std::istream& in) = 0;
+    // virtual void FNDFTrav(
+    //     Point const& q,
+    //     size_t k,
+    //     std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
+    //     NType& Dk) const = 0;
+
+    // virtual void saveToStream(std::ostream& out) const = 0;
+    // virtual void loadFromStream(std::istream& in) = 0;
 };
 
 template<typename Data>
@@ -381,14 +386,30 @@ public:
         return this->split();
     }
 
-    void FNDFTrav(
-        Point const& q,
+    void kNNQuery(
+        Point const& center,
         size_t k,
-        std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
-        NType& Dk) const override;
+        std::priority_queue<std::pair<double, Data>>& results) const override
+    {
+        for (node_t* np : m_children)
+        {
+            double d = distance(np->m_centroid, center).getValue();
 
-    virtual void saveToStream(std::ostream& out) const override;
-    virtual void loadFromStream(std::istream& in) override;
+            if (d < results.top().first)
+            {
+                np->kNNQuery(center, k, results);
+            }
+        }
+    }
+
+    // void FNDFTrav(
+    //     Point const& q,
+    //     size_t k,
+    //     std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
+    //     NType& Dk) const override;
+
+    // virtual void saveToStream(std::ostream& out) const override;
+    // virtual void loadFromStream(std::istream& in) override;
 };
 
 template<typename Data>
@@ -518,14 +539,31 @@ public:
         return this->split();
     }
 
-    void FNDFTrav(
-        Point const& q,
+    void kNNQuery(
+        Point const& center,
         size_t k,
-        std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
-        NType& Dk) const override;
+        std::priority_queue<std::pair<double, Data>>& results) const override
+    {
+        for (size_t i = 0; i < m_points.size(); i++)
+        {
+            double d = distance(m_points[i], center).getValue();
 
-    virtual void saveToStream(std::ostream& out) const override;
-    virtual void loadFromStream(std::istream& in) override;
+            if (d < results.top().first)
+            {
+                results.pop();
+                results.push({d, m_points_data[i]});
+            }
+        }
+    }
+
+    // void FNDFTrav(
+    //     Point const& q,
+    //     size_t k,
+    //     std::priority_queue<Pair, std::vector<Pair>, Comparator>& L,
+    //     NType& Dk) const override;
+
+    // virtual void saveToStream(std::ostream& out) const override;
+    // virtual void loadFromStream(std::istream& in) override;
 };
 
 template<typename Data>
@@ -572,7 +610,20 @@ public:
     }
 
     void build(std::vector<Point> const& points);
-    std::vector<Point> kNNQuery(Point const& center, size_t k) const;
+
+    auto kNNQuery(Point const& center, size_t k) const
+    {
+        std::priority_queue<std::pair<double, Data>> results;
+
+        for (size_t i = 0; i < k; i++)
+        {
+            results.push({std::numeric_limits<double>::max(), Data()});
+        }
+
+        m_root->kNNQuery(center, k, results);
+
+        return results;
+    }
 
     void print() const
     {
