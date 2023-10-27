@@ -556,6 +556,22 @@ public:
         return this->split();
     }
 
+    auto all_points() const -> std::vector<std::vector<double>> override
+    {
+        std::vector<std::vector<double>> ret;
+        for (Point p : m_points)
+        {
+            std::vector<double> r;
+            for (size_t i = 0; i < p.dim(); i++)
+            {
+                r.push_back(p[i].getValue());
+            }
+
+            ret.emplace_back(std::move(r));
+        }
+        return ret;
+    }
+
     void kNNQuery(
         Point const& center,
         size_t k,
