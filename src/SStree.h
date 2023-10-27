@@ -207,6 +207,8 @@ public:
         std::cout << std::endl;
     }
 
+    virtual auto all_points() const -> std::vector<std::vector<double>> = 0;
+
     virtual void kNNQuery(
         Point const& center,
         size_t k,
@@ -324,6 +326,21 @@ public:
     bool isLeaf() const override
     {
         return false;
+    }
+
+    auto all_points() const -> std::vector<std::vector<double>> override
+    {
+        std::vector<std::vector<double>> ret;
+        for (node_t* np : m_children)
+        {
+            auto r = np->all_points();
+
+            for (auto& p : r)
+            {
+                ret.emplace_back(std::move(p));
+            }
+        }
+        return ret;
     }
 
     void updateBoundingEnvelope() override
