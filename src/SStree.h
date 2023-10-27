@@ -13,6 +13,8 @@
 #include "params.h"
 #include "util.hpp"
 
+#include "Seb.h"
+
 template<typename Data>
 class SsNode;
 
@@ -57,6 +59,7 @@ public:
     }
 
     virtual void updateBoundingEnvelope() = 0;
+    virtual void deflate() = 0;
 
     size_t directionOfMaxVariance() const
     {
@@ -377,6 +380,28 @@ public:
         }
     }
 
+    void deflate() override
+    {
+        for (node_t* c : m_children)
+        {
+            c->deflate();
+        }
+
+        auto points = this->all_points();
+
+        Smallest_enclosing_ball mb(points.front().size(), points);
+
+        node_t::m_radius = mb.radius();
+
+        auto const& center = mb.get_center();
+        std::vector<Safe<double>> sv;
+        for (double d : center)
+        {
+            sv.push_back(d);
+        }
+        node_t::m_centroid = Point(sv);
+    }
+
     auto insert(Point const& point, Data const& data) -> std::pair<node_t*, node_t*> override
     {
         auto closest_child_it = this->findClosestChild(point);
@@ -502,6 +527,23 @@ public:
     bool isLeaf() const override
     {
         return true;
+    }
+
+    void deflate() override
+    {
+        std::vector<std::vector<double>> points = this->all_points();
+
+        Smallest_enclosing_ball mb(points.front().size(), points);
+
+        node_t::m_radius = mb.radius();
+
+        auto const& center = mb.get_center();
+        std::vector<Safe<double>> sv;
+        for (double d : center)
+        {
+            sv.push_back(d);
+        }
+        node_t::m_centroid = Point(sv);
     }
 
     void updateBoundingEnvelope() override
@@ -643,6 +685,11 @@ public:
     }
 
     void build(std::vector<Point> const& points);
+
+    void deflate()
+    {
+        m_root->deflate();
+    }
 
     auto kNNQuery(Point const& center, size_t k) const
     {
