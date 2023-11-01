@@ -210,6 +210,31 @@ public:
         std::cout << std::endl;
     }
 
+    void print_node(size_t indent = 0) const
+    {
+        for (size_t i = 0; i < indent; ++i)
+        {
+            std::cout << "  ";
+        }
+
+        // Imprime información del nodo.
+        std::cout << "R=" << m_radius;
+        std::cout << "Center: " << m_centroid << "\n";
+
+        if (isLeaf())
+        {
+            leaf_t const* leaf = dynamic_cast<leaf_t const*>(this);
+            std::cout << ", Points: [ ";
+            for (Point const& p : leaf->m_points)
+            {
+                std::cout << p << " ";
+            }
+            std::cout << "]";
+        }
+
+        std::cout << std::endl;
+    }
+
     virtual auto all_points() const -> std::vector<std::vector<double>> = 0;
 
     virtual void kNNQuery(
