@@ -500,7 +500,12 @@ public:
     {
     }
 
-    std::pair<node_t*, node_t*> split() override
+    auto split() -> std::pair<node_t*, node_t*> override
+    {
+        return variance_split();
+    }
+
+    auto variance_split() -> std::pair<node_t*, node_t*>
     {
         size_t coord_index = this->directionOfMaxVariance();
         std::vector<std::pair<double, size_t>> values_index;
@@ -549,7 +554,7 @@ public:
         return {nn1, nn2};
     }
 
-    auto lineal_split() -> std::pair<node_t*, node_t*> override
+    auto lineal_split() -> std::pair<node_t*, node_t*>
     {
         Point* p1 = nullptr;
         Point* p2 = nullptr;
