@@ -5,15 +5,26 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <queue>
 #include <type_traits>
 #include <vector>
 
 #include "Point.h"
 #include "params.h"
+#include "pvector.hpp"
 #include "util.hpp"
 
 #include "Seb.h"
+
+#ifdef COMPARE_WITH_EXACT
+#include <CGAL/Cartesian_d.h>
+#include <CGAL/Exact_rational.h>
+#include <CGAL/Min_sphere_of_spheres_d.h>
+#endif
+
+#define N_DIMENSIONS 448
+// #define N_DIMENSIONS 3
 
 template<typename Data>
 class SsNode;
@@ -405,13 +416,68 @@ public:
         }
     }
 
-    void deflate() override
+    void updateRadius()
     {
+        node_t::m_radius = 0;
         for (node_t* c : m_children)
         {
-            c->deflate();
+            node_t::m_radius = std::max(
+                node_t::m_radius, distance(node_t::m_centroid, c->m_centroid) + c->m_radius);
         }
 
+                updateRadius();
+
+                double radius_try = node_t::m_radius;
+
+                node_t::m_centroid = old_centroid;
+                node_t::m_radius = old_radius;
+
+                if (min_centroid_try.empty())
+                {
+                    min_centroid_try = std::move(centroid_try);
+                    min_radius_try = radius_try;
+
+                    continue;
+                }
+
+                if (radius_try < min_radius_try)
+                {
+                    min_radius_try = radius_try;
+                    min_centroid_try = std::move(centroid_try);
+                }
+            }
+
+            if (min_radius_try < old_radius)
+            {
+                std::cout << "Improved from " << old_radius << " to " << min_radius_try
+                          << std::endl;
+
+                node_t::m_radius = min_radius_try;
+                node_t::m_centroid = Point(std::vector<Safe<double>>(
+                    min_centroid_try.begin(), min_centroid_try.end()));
+            }
+            else
+            {
+                std::cout << "Failed from " << old_radius << " to " << min_radius_try
+                          << std::endl;
+
+                node_t::m_radius = old_radius;
+                node_t::m_centroid = old_centroid;
+
+                break;
+            }
+        }
+
+#ifdef COMPARE_WITH_EXACT
+        std::cerr << this << " " << old_radius << " -> " << node_t::m_radius << '\n';
+        double excess = node_t::m_radius.getValue() / ms.radius() - 1.0;
+        std::cerr.precision(2);
+        std::cerr << this << " excess: " << std::fixed << excess * 100 << '\n';
+#endif
+    }
+
+    void optimize_with_points()
+    {
         auto points = this->all_points();
 
         Smallest_enclosing_ball mb(points.front().size(), points);
@@ -425,6 +491,42 @@ public:
             sv.push_back(d);
         }
         node_t::m_centroid = Point(sv);
+    }
+
+    void deflate() override
+    {
+        for (node_t* c : m_children)
+        {
+            c->deflate();
+        }
+
+        optimize_with_points();
+        double radius_with_points = node_t::m_radius.getValue();
+
+        optimize();
+
+        if (1e-7 < abs(node_t::m_radius.getValue() - radius_with_points))
+        {
+            constexpr auto max_precision{std::numeric_limits<long double>::digits10 + 1};
+            std::cerr.precision(max_precision);
+            std::cout.precision(max_precision);
+
+            std::cerr << this << "\n";
+            std::cerr << "RC: " << node_t::m_radius.getValue() << "\n";
+            std::cerr << "RP: " << radius_with_points << "\n";
+
+            std::cerr << "This\n";
+            this->print_node();
+            std::cerr << "\n";
+
+            for (size_t i = 0; i < m_children.size(); i++)
+            {
+                std::cerr << "child " << i << "\n";
+                m_children[i]->print_node();
+            }
+
+            assert(false);
+        }
     }
 
     auto insert(Point const& point, Data const& data) -> std::pair<node_t*, node_t*> override
