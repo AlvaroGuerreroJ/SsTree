@@ -476,6 +476,11 @@ public:
 #endif
     }
 
+    /* Calculates the radius and centroid for the sphere using the points stored
+     * by their eventual descendants.
+     *
+     * While it results in tighter spheres it takes longer to compute.
+     **/
     void optimize_with_points()
     {
         auto points = this->all_points();
