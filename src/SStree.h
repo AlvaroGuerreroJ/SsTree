@@ -17,7 +17,7 @@
 
 #include "Seb.h"
 
-#ifdef COMPARE_WITH_EXACT
+#if defined(COMPARE_WITH_EXACT) || defined(USE_EXACT_SOLUTION)
 #include <CGAL/Cartesian_d.h>
 #include <CGAL/Exact_rational.h>
 #include <CGAL/Min_sphere_of_spheres_d.h>
@@ -463,7 +463,7 @@ public:
 
         double old_radius = node_t::m_radius;
 
-#ifdef COMPARE_WITH_EXACT
+#if defined(COMPARE_WITH_EXACT) || defined(USE_EXACT_SOLUTION)
         typedef double FT;
         typedef CGAL::Cartesian_d<FT> K;
         typedef CGAL::Min_sphere_of_spheres_d_traits_d<K, FT, N_DIMENSIONS> Traits;
@@ -480,17 +480,20 @@ public:
         }
         Min_sphere ms(S.begin(), S.end());
         assert(ms.is_valid());
+#endif
 
+#ifdef COMPARE_WITH_EXACT
+        std::cerr << "Optimum: " << ms.radius() << "\n";
+#endif
+
+#if defined(USE_EXACT_SOLUTION)
         std::vector<double> exact_center(
             ms.center_cartesian_begin(), ms.center_cartesian_end());
         node_t::m_centroid =
             Point(std::vector<Safe<double>>(exact_center.begin(), exact_center.end()));
         node_t::m_radius = ms.radius();
-
-        std::cerr << "Optimum: " << ms.radius() << "\n";
-#endif
-
-        while (false)
+#else
+        while (true)
         {
             double old_radius = node_t::m_radius;
             Point old_centroid = node_t::m_centroid;
@@ -554,6 +557,7 @@ public:
                 break;
             }
         }
+#endif
 
 #ifdef COMPARE_WITH_EXACT
         std::cerr << this << " " << old_radius << " -> " << node_t::m_radius << '\n';
