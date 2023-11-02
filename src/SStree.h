@@ -505,33 +505,7 @@ public:
             c->deflate();
         }
 
-        optimize_with_points();
-        double radius_with_points = node_t::m_radius.getValue();
-
         optimize();
-
-        if (1e-7 < abs(node_t::m_radius.getValue() - radius_with_points))
-        {
-            constexpr auto max_precision{std::numeric_limits<long double>::digits10 + 1};
-            std::cerr.precision(max_precision);
-            std::cout.precision(max_precision);
-
-            std::cerr << this << "\n";
-            std::cerr << "RC: " << node_t::m_radius.getValue() << "\n";
-            std::cerr << "RP: " << radius_with_points << "\n";
-
-            std::cerr << "This\n";
-            this->print_node();
-            std::cerr << "\n";
-
-            for (size_t i = 0; i < m_children.size(); i++)
-            {
-                std::cerr << "child " << i << "\n";
-                m_children[i]->print_node();
-            }
-
-            assert(false);
-        }
     }
 
     auto insert(Point const& point, Data const& data) -> std::pair<node_t*, node_t*> override
