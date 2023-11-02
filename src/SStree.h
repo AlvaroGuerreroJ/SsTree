@@ -549,6 +549,75 @@ public:
         return {nn1, nn2};
     }
 
+    auto lineal_split() -> std::pair<node_t*, node_t*> override
+    {
+        Point* p1 = nullptr;
+        Point* p2 = nullptr;
+        std::pair<size_t, size_t> max_distance_pair;
+        double max_distance = 0;
+        for (size_t i = 0; i < m_points.size(); i++)
+        {
+            for (size_t j = i + 1; j < m_points.size(); j++)
+            {
+                double d = distance(m_points[i], m_points[j]).getValue();
+                if (max_distance < d)
+                {
+                    max_distance = d;
+                    p1 = &m_points[i];
+                    p2 = &m_points[j];
+                }
+            }
+        }
+
+        SsLeaf* nn1 = new SsLeaf(node_t::m_centroid.dim(), node_t::m_parent);
+        SsLeaf* nn2 = new SsLeaf(node_t::m_centroid.dim(), node_t::m_parent);
+
+        std::vector<std::pair<double, size_t>> ddistances;
+
+        for (size_t i = 0; i < m_points.size(); i++)
+        {
+            double d1 = distance(*p1, m_points[i]).getValue();
+            double d2 = distance(*p2, m_points[i]).getValue();
+            ddistances.push_back({d2 - d1, i});
+        }
+
+        std::sort(ddistances.begin(), ddistances.end());
+
+        assert(2 * Settings::m <= ddistances.size());
+
+        for (size_t i = 0; i < ddistances.size(); i++)
+        {
+            if (i <= Settings::m)
+            {
+                nn1->m_points.push_back(m_points[i]);
+                nn1->m_points_data.emplace_back(std::move(m_points_data[i]));
+            }
+            else if (ddistances.size() - Settings::m <= i)
+            {
+                nn2->m_points.push_back(m_points[i]);
+                nn2->m_points_data.emplace_back(std::move(m_points_data[i]));
+            }
+            else if (ddistances[i].first < 0)
+            {
+                nn1->m_points.push_back(m_points[i]);
+                nn1->m_points_data.emplace_back(std::move(m_points_data[i]));
+            }
+            else
+            {
+                nn2->m_points.push_back(m_points[i]);
+                nn2->m_points_data.emplace_back(std::move(m_points_data[i]));
+            }
+        }
+
+        nn1->updateBoundingEnvelope();
+        nn2->updateBoundingEnvelope();
+
+        assert(Settings::m <= nn1->m_points.size());
+        assert(Settings::m <= nn2->m_points.size());
+
+        return {nn1, nn2};
+    }
+
     bool isLeaf() const override
     {
         return true;
