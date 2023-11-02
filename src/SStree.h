@@ -424,6 +424,93 @@ public:
             node_t::m_radius = std::max(
                 node_t::m_radius, distance(node_t::m_centroid, c->m_centroid) + c->m_radius);
         }
+    }
+
+    auto center_for_group(int group) -> std::vector<double>
+    {
+        // double epsilon = 1e-5;
+        std::vector<double> center = point_to_vd(node_t::m_centroid);
+
+        std::vector<std::vector<double>> support;
+
+        int i = 0;
+        for (node_t* c : m_children)
+        {
+            if ((group >> i) % 2 == 0)
+            {
+                i++;
+                continue;
+            }
+
+            std::vector<double> vector_rr = vector_sub(point_to_vd(c->m_centroid), center);
+            std::vector<double> farthest_point =
+                vector_add(vector_rr, vector_scale(vector_unit(vector_rr), c->m_radius));
+
+            support.emplace_back(std::move(vector_rr));
+            support.emplace_back(std::move(farthest_point));
+
+            i++;
+        }
+
+        Smallest_enclosing_ball mb(support.front().size(), support);
+
+        return mb.get_center();
+    }
+
+    void optimize()
+    {
+        updateBoundingEnvelope();
+
+        double old_radius = node_t::m_radius;
+
+#ifdef COMPARE_WITH_EXACT
+        typedef double FT;
+        typedef CGAL::Cartesian_d<FT> K;
+        typedef CGAL::Min_sphere_of_spheres_d_traits_d<K, FT, N_DIMENSIONS> Traits;
+        typedef CGAL::Min_sphere_of_spheres_d<Traits> Min_sphere;
+        typedef K::Point_d Point_d;
+        typedef Traits::Sphere Sphere;
+
+        std::vector<Sphere> S;
+        for (node_t* s : m_children)
+        {
+            std::vector<double> vc(s->m_centroid.begin(), s->m_centroid.end());
+            S.push_back(
+                Sphere(Point_d(N_DIMENSIONS, vc.begin(), vc.end()), s->m_radius.getValue()));
+        }
+        Min_sphere ms(S.begin(), S.end());
+        assert(ms.is_valid());
+
+        std::vector<double> exact_center(
+            ms.center_cartesian_begin(), ms.center_cartesian_end());
+        node_t::m_centroid =
+            Point(std::vector<Safe<double>>(exact_center.begin(), exact_center.end()));
+        node_t::m_radius = ms.radius();
+
+        std::cerr << "Optimum: " << ms.radius() << "\n";
+#endif
+
+        while (false)
+        {
+            double old_radius = node_t::m_radius;
+            Point old_centroid = node_t::m_centroid;
+
+            double min_radius_try = 1000000000;
+            std::vector<double> min_centroid_try;
+
+            int m_comb = (1 << m_children.size());
+
+            for (int i = m_comb - 1; i < m_comb; i++)
+            {
+                node_t::m_centroid = old_centroid;
+                node_t::m_radius = old_radius;
+
+                std::vector<double> centroid_displacement = center_for_group(i);
+                std::vector<double> centroid_try =
+                    vector_add(point_to_vd(node_t::m_centroid), centroid_displacement);
+
+                node_t::m_centroid =
+                    Point(std::vector<Safe<double>>(centroid_try.begin(), centroid_try.end()));
 
                 updateRadius();
 
@@ -472,7 +559,7 @@ public:
         std::cerr << this << " " << old_radius << " -> " << node_t::m_radius << '\n';
         double excess = node_t::m_radius.getValue() / ms.radius() - 1.0;
         std::cerr.precision(2);
-        std::cerr << this << " excess: " << std::fixed << excess * 100 << '\n';
+        std::cerr << this << " excess: " << std::fixed << excess * 100 << "%\n";
 #endif
     }
 
